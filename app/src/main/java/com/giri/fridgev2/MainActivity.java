@@ -23,6 +23,8 @@ public class MainActivity extends AppCompatActivity {
      */
     int passChance = 0;
 
+    String doorStatus = "1";
+
     // 创建线程
     Thread mainThread = new MainThread();
     Thread passStatusThread = new PassStatusThread();
@@ -72,10 +74,11 @@ public class MainActivity extends AppCompatActivity {
                     // 发送异常情况到云端
                     postString();
 
-                    // 蜂鸣报警
-
-                    while (passChance < 0) {
+                    // 循环
+                    int flag = passChance;
+                    while (flag < 0) {
                         // 暂停线程1
+                        flag = passChance;
                     }
                 }
             }
@@ -92,8 +95,8 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             while (true) {
                 try {
-                    /** 睡眠（延时）0.1秒后执行 */
-                    Thread.sleep(100);
+                    /** 睡眠（延时）0.05秒后执行 */
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -102,6 +105,9 @@ public class MainActivity extends AppCompatActivity {
                 if (passStatus.equals("1")) {
                     passChance += 1;
                     Log.d("HM", "虹膜识别成功，目前通过机会为:" + passChance);
+                    while (passStatus.equals("1")) {
+                        passStatus = getPassStatus();
+                    }
                     try {
                         /** 睡眠（延时）4秒后执行 */
                         Thread.sleep(4000);
@@ -122,21 +128,19 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             while (true) {
-                try {
-                    /** 睡眠（延时）0.1秒后执行 */
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                String doorStatus;
-                doorStatus = getDoorStatus();
-                if (doorStatus.equals("1")) {
+                getDoorStatus();
+                if (doorStatus.equals("0")) {
                     passChance -= 1;
                     Log.d("HM", "识别到人员通过，目前通过机会为:" + passChance);
-                }
-                while (doorStatus.equals("1")) {
-                    doorStatus = getDoorStatus();
+                    while (doorStatus.equals("0")) {
+                        getDoorStatus();
+                    }
+                    try {
+                        /** 睡眠（延时）0.5秒后执行 */
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -152,15 +156,15 @@ public class MainActivity extends AppCompatActivity {
             while (true) {
                 int count = 0;
                 int chanceCount = passChance;
-                while (chanceCount == passChance) {
+                while (chanceCount == passChance && doorStatus.equals("1") && getPassStatus().equals("0")) {
                     try {
-                        /** 睡眠（延时）1秒后执行 */
-                        Thread.sleep(1000);
+                        /** 睡眠（延时）0.1秒后执行 */
+                        Thread.sleep(100);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     count++;
-                    if (count >= 10) {
+                    if (count >= 100) {
                         count = 0;
                         passChance = 0;
                         Log.d("HM", "十秒无人通过，清零，目前通过机会为:" + passChance);
@@ -208,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
             reader.read(buffer);
 
             passStatus = buffer[995] + "";
+//            Log.d("GPIO","J303:" + passStatus);
             reader.close();
             fileReader.close();
         } catch (IOException e) {
@@ -219,8 +224,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 从感应门获取信号
      */
-    private String getDoorStatus() {
-        String doorStatus = "0";
+    private void getDoorStatus() {
 
         // 定义路径
         String gpioPath = "/sys/devices/virtual/misc/mtgpio/pin";
@@ -234,14 +238,13 @@ public class MainActivity extends AppCompatActivity {
             BufferedReader reader = new BufferedReader(fileReader);
             reader.read(buffer);
 
-            doorStatus = buffer[995] + "";
+            doorStatus = buffer[1203] + "";
+            Log.d("GPIO", "J602-1:" + doorStatus);
             reader.close();
             fileReader.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        return doorStatus;
     }
 
     private void postString() {
@@ -253,17 +256,17 @@ public class MainActivity extends AppCompatActivity {
                 " \"data\":{\n" +
                 "  \"tn\":\"tmmt_trailing_info\",\n" +
                 "  \"insertObject\":{\n" +
-                "   \"device_id\": 2,\n" +
+                "   \"device_mac\": 05ad110110037a,\n" +
                 "   \"trailing_signal\" : 1,\n" +
-                "   \"t\":\""+time+"\",\n" +
+                "   \"t\":\"" + time + "\",\n" +
                 "   \"creator\":\"admin\",\n" +
-                "   \"create_time\" : \""+time+"\",\n" +
+                "   \"create_time\" : \"" + time + "\",\n" +
                 "   \"modifier\":\"admin\",\n" +
-                "   \"modified_time\":\""+time+"\"\n" +
+                "   \"modified_time\":\"" + time + "\"\n" +
                 "  }\n" +
                 " }\n" +
                 "}";
-        Log.d("HMDATA", uploadJSON);
+        Log.d("DATA", uploadJSON);
 
         // 上传uploadImageJSON,调用封装好okHttp方法
         String postURL = getResources().getString(R.string.postURL);
