@@ -1,0 +1,9 @@
+<resources>
+    <string name="postURL">http://cwpro.giricloud.com/rating9/pmm/common_table/save</string>
+    <!--设备名称-->
+    <string name="deviceId">2</string>
+
+    <!--UI文本-->
+    <string name="app_name">虹膜识别门关监控</string>
+    <string name="auto_iv">拍摄预览</string>
+</resources>
