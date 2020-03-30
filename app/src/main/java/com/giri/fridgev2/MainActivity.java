@@ -6,9 +6,7 @@ import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.giri.fridgev2.entity.Data;
 import com.giri.fridgev2.utils.PostStringUtil;
-import com.google.gson.Gson;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -72,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
                 if (passChance < 0) {
                     Log.d("HM", "通过次数异常，目前通过机会为:" + passChance);
                     // 发送异常情况到云端
-                    postString();
+                    postErrorString();
 
                     // 循环
                     int flag = passChance;
@@ -156,7 +154,8 @@ public class MainActivity extends AppCompatActivity {
             while (true) {
                 int count = 0;
                 int chanceCount = passChance;
-                while (chanceCount == passChance && doorStatus.equals("1") && getPassStatus().equals("0")) {
+                while (chanceCount == passChance && doorStatus.equals("1") && getPassStatus().equals("0") && passChance != 0) {
+
                     try {
                         /** 睡眠（延时）0.1秒后执行 */
                         Thread.sleep(100);
@@ -167,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
                     if (count >= 100) {
                         count = 0;
                         passChance = 0;
+                        postZeroString();
                         Log.d("HM", "十秒无人通过，清零，目前通过机会为:" + passChance);
                     }
                 }
@@ -247,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void postString() {
+    private void postErrorString() {
 
         String time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
@@ -256,8 +256,38 @@ public class MainActivity extends AppCompatActivity {
                 " \"data\":{\n" +
                 "  \"tn\":\"tmmt_trailing_info\",\n" +
                 "  \"insertObject\":{\n" +
-                "   \"device_mac\": 05ad110110037a,\n" +
+                "   \"device_mac\": \"05ad110110037a\",\n" +
                 "   \"trailing_signal\" : 1,\n" +
+                "   \"t\":\"" + time + "\",\n" +
+                "   \"creator\":\"admin\",\n" +
+                "   \"create_time\" : \"" + time + "\",\n" +
+                "   \"modifier\":\"admin\",\n" +
+                "   \"modified_time\":\"" + time + "\"\n" +
+                "  }\n" +
+                " }\n" +
+                "}";
+        Log.d("DATA", uploadJSON);
+
+        // 上传uploadImageJSON,调用封装好okHttp方法
+        String postURL = getResources().getString(R.string.postURL);
+        try {
+            PostStringUtil.post(postURL, uploadJSON);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void postZeroString() {
+
+        String time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+
+        String uploadJSON = "{\n" +
+                " \"token\":\"934c65904fb224bd25857b466326f72f1b78d78a63f8fc\",\n" +
+                " \"data\":{\n" +
+                "  \"tn\":\"tmmt_trailing_info\",\n" +
+                "  \"insertObject\":{\n" +
+                "   \"device_mac\": \"05ad110110037a\",\n" +
+                "   \"trailing_signal\" : 0,\n" +
                 "   \"t\":\"" + time + "\",\n" +
                 "   \"creator\":\"admin\",\n" +
                 "   \"create_time\" : \"" + time + "\",\n" +
