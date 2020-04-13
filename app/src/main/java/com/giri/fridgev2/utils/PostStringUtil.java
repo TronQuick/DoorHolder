@@ -33,7 +33,6 @@ public class PostStringUtil {
                 .build();
         try (Response response = client.newCall(request).execute()) {
             Log.d("response",response.body().string());
-
         }
     }
 }
